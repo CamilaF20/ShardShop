@@ -166,17 +166,6 @@ sin shards) en [`docs/escalabilidad.md`](docs/escalabilidad.md).
 > cluster base, quítalo con `citus_remove_node('worker3', 5432)` y detén el
 > contenedor; o arranca siempre con `docker compose --profile scale up -d`.
 
-## Capturas sugeridas
-
-1. `docker compose ps` con los servicios "healthy".
-2. Panel → pestaña **Arquitectura** (estado de las bases y workers).
-3. Panel → pestaña **Distribución** (filas por worker y chips de shards).
-4. Panel → pestaña **Enrutamiento** (`Task Count: 1` vs `32`).
-| Panel → pestaña **Vertical** (esquema y gráfico básicas vs con perfil).
-5. Panel → pestaña **Estadísticas** (totales, top 5 y rebalanceo).
-6. `docs/evidencias/horizontal.md` y `docs/evidencias/vertical.md`.
-7. `./scripts/demo_escalabilidad.sh` mostrando el reparto entre 3 workers.
-
 ## Solución de problemas
 
 - **El puerto 5432 está ocupado por un PostgreSQL local.** Cambia
