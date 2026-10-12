@@ -1,0 +1,163 @@
+# =============================================================================
+# docker-compose.yml — ShardShop
+# =============================================================================
+# Cluster Citus de 3 nodos (1 coordinator + 2 workers) + un PostgreSQL 16
+# independiente para el sharding VERTICAL de usuarios.
+#
+#   coordinator (:5432)  ->  metadata de shards y punto de entrada
+#     worker1 / worker2  ->  almacenan los shards de pedidos/detalle_pedidos
+#                            y una copia de la reference table productos
+#   db_usuarios (:5433)  ->  dominio separado (usuarios, usuarios_perfil)
+#
+# Los valores se toman de `.env` (ver `.env.example`); si falta, se usan
+# los defaults de aquí para poder levantar el stack sin configuración.
+# =============================================================================
+
+name: shardshop
+
+# Bloque común a los nodos Citus para no repetir configuración.
+x-citus-node: &citus-node
+  image: citusdata/citus:12.1
+  restart: unless-stopped
+  environment: &citus-env
+    POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    # Permite conexiones entre nodos sin contraseña en local. Configurable en .env.
+    POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
+    # PGUSER/PGPASSWORD los usa libpq (y por tanto Citus) al conectar entre nodos.
+    PGUSER: ${POSTGRES_USER:-postgres}
+    PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  networks:
+    - shardshop
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d postgres"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+    start_period: 10s
+
+services:
+  # --- Coordinator: nodo de entrada; no almacena shards. -----------------------
+  coordinator:
+    <<: *citus-node
+    ports:
+      - "${COORDINATOR_PORT:-5432}:5432"
+    volumes:
+      - coordinator_data:/var/lib/postgresql/data
+
+  # --- Workers: almacenan los shards de las tablas distribuidas. --------------
+  worker1:
+    <<: *citus-node
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+
+  worker2:
+    <<: *citus-node
+    volumes:
+      - worker2_data:/var/lib/postgresql/data
+
+  # --- worker3: escalado horizontal OPCIONAL (perfil "scale"). ----------------
+  # No arranca con `docker compose up` para conservar el cluster base de 2
+  # workers. Se levanta y registra con scripts/demo_escalabilidad.sh:
+  #   docker compose --profile scale up -d worker3
+  worker3:
+    <<: *citus-node
+    profiles: ["scale"]
+    volumes:
+      - worker3_data:/var/lib/postgresql/data
+
+  # --- PostgreSQL independiente para el sharding vertical (usuarios). ---------
+  # Dominio separado, sin Citus: ilustra el sharding vertical por dominio.
+  db_usuarios:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
+    ports:
+      - "${DB_USUARIOS_PORT:-5433}:5432"
+    volumes:
+      - db_usuarios_data:/var/lib/postgresql/data
+    networks:
+      - shardshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # --- init-cluster: tarea de una sola ejecución que arma el cluster. ---------
+  # Espera a que las 4 bases estén sanas, registra los workers y aplica los
+  # esquemas SQL. Es idempotente: puede re-ejecutarse con `docker compose run`.
+  init-cluster:
+    image: citusdata/citus:12.1
+    restart: "no"
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      worker1:
+        condition: service_healthy
+      worker2:
+        condition: service_healthy
+      db_usuarios:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      COORDINATOR_HOST: coordinator
+      COORDINATOR_PORT: "5432"
+      COORDINATOR_DB: postgres
+      USUARIOS_HOST: db_usuarios
+      USUARIOS_PORT: "5432"
+      USUARIOS_DB: postgres
+      WORKERS: worker1,worker2
+      WORKER_PORT: "5432"
+      SQL_DIR: /sql
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./sql:/sql:ro
+    entrypoint: ["bash", "/scripts/init_cluster.sh"]
+    networks:
+      - shardshop
+
+  # --- app: backend FastAPI (panel de demostración). --------------------------
+  # Arranca cuando `init-cluster` termina OK (workers registrados y esquemas
+  # aplicados). Mantiene DOS pools independientes: Citus y db_usuarios, que
+  # ilustran el sharding horizontal y vertical respectivamente.
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      init-cluster:
+        condition: service_completed_successfully
+    environment:
+      # Dominio horizontal (cluster Citus): host/puerto internos de la red.
+      CITUS_HOST: coordinator
+      CITUS_PORT: "5432"
+      CITUS_USER: ${POSTGRES_USER:-postgres}
+      CITUS_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      CITUS_DB: postgres
+      # Dominio vertical (PostgreSQL independiente).
+      USUARIOS_HOST: db_usuarios
+      USUARIOS_PORT: "5432"
+      USUARIOS_USER: ${POSTGRES_USER:-postgres}
+      USUARIOS_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      USUARIOS_DB: postgres
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    networks:
+      - shardshop
+
+networks:
+  shardshop:
+    driver: bridge
+
+volumes:
+  coordinator_data:
+  worker1_data:
+  worker2_data:
+  worker3_data:
+  db_usuarios_data:

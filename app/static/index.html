@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<!-- index.html — Panel web de ShardShop: navegación por pestañas, tema azul. -->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShardShop · panel de demostración</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --azul-900: #0b2559;
+      --azul-800: #123a86;
+      --azul-700: #1d4ed8;
+      --azul-600: #2563eb;
+      --azul-500: #3b82f6;
+      --azul-300: #93c5fd;
+      --azul-100: #dbeafe;
+      --azul-50: #eff6ff;
+      --cian: #0ea5e9;
+      --verde: #0e9f6e;
+      --ambar: #d97706;
+      --rojo: #dc2626;
+      --tinta: #0f1b33;
+      --gris: #5b6b86;
+      --gris-2: #93a2ba;
+      --linea: #dbe4f3;
+      --blanco: #ffffff;
+      --radio: 16px;
+      --sombra-1: 0 1px 2px rgba(16, 39, 94, .08), 0 10px 26px -16px rgba(16, 39, 94, .38);
+      --sombra-2: 0 2px 6px rgba(16, 39, 94, .10), 0 20px 44px -20px rgba(16, 39, 94, .45);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--tinta);
+      background:
+        radial-gradient(1100px 460px at 12% -8%, #dbe9ff 0%, rgba(219, 233, 255, 0) 60%),
+        radial-gradient(900px 420px at 100% 0%, #e3f2ff 0%, rgba(227, 242, 255, 0) 55%),
+        linear-gradient(180deg, #eef4ff 0%, #f6f9fe 340px, #f3f6fc 100%);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    code { background: var(--azul-50); color: var(--azul-800); padding: 1px 6px; border-radius: 6px; font-size: .85em; }
+    .ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    /* --- Barra superior ---------------------------------------------------- */
+    .barra {
+      position: sticky; top: 0; z-index: 40;
+      background: linear-gradient(120deg, var(--azul-900) 0%, var(--azul-800) 45%, var(--azul-700) 100%);
+      box-shadow: 0 6px 22px -10px rgba(11, 37, 89, .75);
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+    .barra-inner {
+      width: 100%; padding: 0 clamp(16px, 3vw, 44px);
+      min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+    }
+    .marca { display: flex; align-items: center; gap: 12px; color: #fff; padding: 12px 0; }
+    .logo {
+      width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff;
+      background: linear-gradient(150deg, var(--azul-500), var(--azul-700));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 14px -6px rgba(0,0,0,.6);
+    }
+    .marca .txt { display: flex; flex-direction: column; line-height: 1.15; }
+    .marca .nombre { font-size: 1.18rem; font-weight: 800; letter-spacing: -.01em; }
+    .marca .tag { font-size: .72rem; color: #bcd2f7; font-weight: 600; }
+
+    .menu { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 0; }
+    .menu button {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid transparent; background: rgba(255,255,255,.07); color: #d7e4fb;
+      font: inherit; font-weight: 650; font-size: .86rem; padding: 8px 13px; border-radius: 10px; cursor: pointer;
+      transition: background .15s ease, color .15s ease, transform .08s ease;
+    }
+    .menu button:hover { background: rgba(255,255,255,.16); color: #fff; }
+    .menu button.activa {
+      background: #fff; color: var(--azul-700);
+      box-shadow: 0 8px 18px -10px rgba(0,0,0,.7), inset 0 1px 0 #fff;
+    }
+
+    /* --- Contenido --------------------------------------------------------- */
+    .app { width: 100%; padding: 26px clamp(16px, 3vw, 44px) 80px; }
+    .panel { display: none; }
+    .panel.activo { display: block; animation: aparecer .28s ease; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .panel-cab {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+      padding: 16px 20px; border-radius: var(--radio);
+      background: linear-gradient(120deg, rgba(255,255,255,.92), rgba(239, 246, 255, .92));
+      border: 1px solid var(--linea); box-shadow: var(--sombra-1);
+    }
+    .panel-ico {
+      width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: #fff; flex: none;
+      background: linear-gradient(150deg, var(--azul-500), var(--azul-700));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 18px -10px var(--azul-600);
+    }
+    .panel-ico .ico { width: 24px; height: 24px; }
+    .panel-cab h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.01em; }
+    .panel-cab p { margin: 2px 0 0; color: var(--gris); font-size: .9rem; max-width: 900px; }
+
+    /* --- Rejillas y tarjetas ---------------------------------------------- */
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .card {
+      position: relative; background: var(--blanco); border: 1px solid var(--linea);
+      border-radius: var(--radio); box-shadow: var(--sombra-1); padding: 20px;
+      transition: transform .16s ease, box-shadow .16s ease; overflow: hidden;
+    }
+    .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--azul-500), var(--azul-300)); }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--sombra-2); }
+    .card.cyan::before { background: linear-gradient(90deg, var(--cian), #7dd3fc); }
+    .card h3 { margin: 0 0 4px; font-size: 1.03rem; }
+    .card .sub { margin: 0 0 14px; color: var(--gris); font-size: .86rem; }
+    .card-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+
+    /* --- Indicadores ------------------------------------------------------- */
+    .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 14px; }
+    .metrica { border-radius: 13px; padding: 13px 15px; border: 1px solid var(--linea); background: linear-gradient(160deg, #fbfdff, var(--azul-50)); }
+    .metrica .etiqueta { font-size: .71rem; color: var(--gris); text-transform: uppercase; letter-spacing: .05em; font-weight: 750; }
+    .metrica .valor { font-size: 1.3rem; font-weight: 800; margin-top: 3px; letter-spacing: -.01em; }
+
+    /* --- Controles --------------------------------------------------------- */
+    label.campo { display: block; font-size: .78rem; font-weight: 750; color: var(--gris); margin-bottom: 4px; }
+    input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; background: var(--blanco); color: var(--tinta); }
+    input:focus, textarea:focus { outline: 2px solid var(--azul-500); outline-offset: 1px; border-color: var(--azul-500); }
+    textarea { resize: vertical; min-height: 66px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84rem; }
+    .bloque { margin-bottom: 12px; }
+    .acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+
+    button.boton {
+      border: none; background: linear-gradient(150deg, var(--azul-500), var(--azul-700)); color: #fff; font: inherit; font-weight: 700;
+      padding: 10px 17px; border-radius: 11px; cursor: pointer;
+      box-shadow: 0 8px 18px -10px var(--azul-600), inset 0 1px 0 rgba(255,255,255,.35);
+      transition: filter .15s ease, transform .06s ease;
+    }
+    button.boton:hover { filter: brightness(1.07); }
+    button.boton:active { transform: translateY(1px); }
+    button.boton:disabled { filter: grayscale(.5) brightness(1.05); cursor: not-allowed; box-shadow: none; }
+    button.boton.lineal { background: #fff; color: var(--azul-700); border: 1px solid var(--azul-300); box-shadow: none; }
+    button.boton.lineal:hover { background: var(--azul-50); }
+    button.boton.cian { background: linear-gradient(150deg, #38bdf8, #0284c7); box-shadow: 0 8px 18px -10px #0284c7; }
+
+    /* --- Estados ----------------------------------------------------------- */
+    .estado { font-size: .86rem; border-radius: 11px; }
+    .estado.cargando, .estado.error, .estado.ok { padding: 9px 12px; margin: 10px 0 0; }
+    .estado.cargando { background: var(--azul-50); color: var(--azul-800); }
+    .estado.error { background: #fef2f2; color: var(--rojo); }
+    .estado.ok { background: #ecfdf5; color: #047857; }
+    .estado:empty { display: none; }
+
+    /* --- Badges ------------------------------------------------------------ */
+    .badge { display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; font-weight: 750; padding: 3px 10px; border-radius: 999px; }
+    .badge.ok { background: #d1fae5; color: #047857; }
+    .badge.error { background: #fee2e2; color: #b91c1c; }
+    .badge.neutro { background: var(--azul-50); color: var(--gris); }
+    .badge.azul { background: var(--azul-100); color: var(--azul-800); }
+    .badge.cian { background: #e0f2fe; color: #0369a1; }
+    .badge.ambar { background: #fef3c7; color: #b45309; }
+
+    /* --- Tablas ------------------------------------------------------------ */
+    .tabla-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+    th { color: var(--gris); font-size: .73rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 750; }
+    tbody tr:hover { background: #f8fbff; }
+    tr:last-child td { border-bottom: none; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* --- Gráficos ---------------------------------------------------------- */
+    .grafico-caja { position: relative; height: 300px; margin-top: 6px; }
+
+    /* --- Plegables --------------------------------------------------------- */
+    details.vermas { margin-top: 14px; border-top: 1px dashed var(--linea); padding-top: 10px; }
+    details.vermas > summary { cursor: pointer; font-size: .84rem; font-weight: 750; color: var(--azul-700); list-style: none; display: flex; align-items: center; gap: 6px; }
+    details.vermas > summary::-webkit-details-marker { display: none; }
+    details.vermas > summary::before { content: "▸"; transition: transform .15s ease; }
+    details.vermas[open] > summary::before { transform: rotate(90deg); }
+
+    /* --- Flujo ------------------------------------------------------------- */
+    .flujo { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+    .flujo-nodo { flex: 1; min-width: 92px; border: 2px solid var(--linea); border-radius: 13px; padding: 9px 14px; text-align: center; background: #fbfdff; }
+    .flujo-nodo .titulo { font-size: .67rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gris); font-weight: 800; }
+    .flujo-nodo .dato { font-size: 1.12rem; font-weight: 800; }
+    .flujo-nodo.entrada { border-color: var(--azul-300); color: var(--azul-800); background: var(--azul-50); }
+    .flujo-nodo.shard { border-color: var(--azul-600); color: var(--azul-700); }
+    .flujo-nodo.worker { border-color: var(--verde); color: #047857; }
+    .flujo-flecha { align-self: center; color: var(--azul-300); font-weight: 800; font-size: 1.1rem; }
+    .flujo-flecha small { display: block; font-size: .6rem; font-weight: 700; color: var(--gris-2); text-align: center; }
+
+    /* --- Chips de shards --------------------------------------------------- */
+    .workers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 14px; }
+    .worker-card { border: 1px solid var(--linea); border-radius: 13px; padding: 13px 14px; background: linear-gradient(160deg, #fbfdff, #f3f8ff); }
+    .worker-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .worker-filas { font-size: .78rem; color: var(--gris); margin: 2px 0 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: .72rem; font-weight: 700; color: #fff; border-radius: 7px; padding: 3px 8px; box-shadow: 0 3px 8px -4px rgba(16,39,94,.6); }
+
+    /* --- Esquema de tablas ------------------------------------------------- */
+    .esquema { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 4px 0; }
+    .tabla-esquema { border: 1px solid var(--linea); border-radius: 13px; overflow: hidden; background: #fff; box-shadow: var(--sombra-1); }
+    .tabla-esquema .tabla-titulo { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 13px; font-weight: 750; font-size: .9rem; background: var(--azul-50); }
+    .tabla-esquema.basica .tabla-titulo { border-bottom: 3px solid var(--verde); }
+    .tabla-esquema.perfil .tabla-titulo { border-bottom: 3px solid var(--ambar); }
+    .tabla-esquema ol { margin: 0; padding: 9px 13px 13px 26px; font-size: .84rem; }
+    .tabla-esquema li { margin: 2px 0; }
+    .tabla-esquema li .tipo { color: var(--gris); font-size: .77rem; }
+    .esquema-nota { grid-column: 1 / -1; font-size: .82rem; color: var(--gris); text-align: center; }
+
+    /* --- Arquitectura ------------------------------------------------------ */
+    .arqui { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 6px 0; }
+    .arqui-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .arqui-caja { min-width: 170px; border: 2px solid var(--linea); border-radius: 13px; padding: 11px 15px; text-align: center; background: #fbfdff; box-shadow: var(--sombra-1); }
+    .arqui-caja .t { font-weight: 800; font-size: .93rem; }
+    .arqui-caja .s { font-size: .75rem; color: var(--gris); }
+    .arqui-caja.app { border-color: var(--azul-800); }
+    .arqui-caja.coord { border-color: var(--azul-600); }
+    .arqui-caja.dbus { border-color: var(--cian); }
+    .arqui-caja.worker { border-color: var(--verde); }
+    .arqui-caja.ref { border-style: dashed; }
+    .arqui-flecha { color: var(--azul-300); font-size: 1.05rem; }
+
+    /* --- EXPLAIN ----------------------------------------------------------- */
+    pre.plan { background: #0a1428; color: #d6e2f7; padding: 13px; border-radius: 11px; overflow-x: auto; font-size: .78rem; margin: 8px 0 0; }
+    .bloque-explain { border: 1px solid var(--linea); border-radius: 13px; padding: 13px; margin-top: 12px; background: #fbfdff; }
+    .bloque-explain .titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bloque-explain .sql { font-size: .81rem; color: var(--gris); margin-top: 4px; }
+    .tc-caja { min-width: 96px; padding: 8px 12px; border-radius: 12px; text-align: center; }
+    .tc-caja.uno { background: #d1fae5; color: #047857; }
+    .tc-caja.muchos { background: #fef3c7; color: #b45309; }
+    .tc-caja .n { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .tc-caja .l { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+
+    /* --- Items y pedidos --------------------------------------------------- */
+    .fila-item { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .quitar { background: #fff; color: var(--rojo); border: 1px solid var(--rojo); padding: 9px 12px; border-radius: 11px; cursor: pointer; font-weight: 750; }
+    .pedido { border: 1px solid var(--linea); border-radius: 13px; padding: 13px; margin-top: 10px; background: #fbfdff; }
+    .pedido .cab { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .pedido ul { margin: 8px 0 0; padding-left: 18px; }
+
+    /* --- Adaptación a pantallas grandes y pequeñas ------------------------- */
+    @media (min-width: 1700px) {
+      .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grafico-caja { height: 340px; }
+    }
+    @media (max-width: 1024px) {
+      .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .workers-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .barra-inner { justify-content: center; padding: 0 16px; }
+      .marca { padding-bottom: 0; }
+      .menu { justify-content: center; }
+      .app { padding: 20px 14px 60px; }
+      .panel-cab { align-items: flex-start; }
+      .grafico-caja { height: 250px; }
+      .esquema { grid-template-columns: 1fr; }
+      .fila-item { grid-template-columns: 1fr 1fr; }
+      .fila-item .quitar { grid-column: 1 / -1; }
+    }
+    @media (max-width: 480px) {
+      .menu button { padding: 7px 10px; font-size: .8rem; }
+      .menu button .ico { display: none; }
+      .marca .tag { display: none; }
+      .panel-cab { flex-direction: column; }
+      .metricas { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="ico-arq" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 12.5 12 17l9-4.5"/><path d="M3 16.5 12 21l9-4.5"/></symbol>
+    <symbol id="ico-dist" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></symbol>
+    <symbol id="ico-ruta" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="6" r="2.4"/><path d="M8.5 18H14a4 4 0 0 0 4-4V8.5"/></symbol>
+    <symbol id="ico-vert" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.4"/><path d="M10 4v16"/><path d="M14 9h4M14 13h4"/></symbol>
+    <symbol id="ico-tienda" viewBox="0 0 24 24"><path d="M3 4h2l2.3 11a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7.5H6"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17.5" cy="20" r="1.3"/></symbol>
+    <symbol id="ico-est" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2.5 20h19"/></symbol>
+  </svg>
+
+  <header class="barra">
+    <div class="barra-inner">
+      <div class="marca">
+        <span class="logo"><svg class="ico"><use href="#ico-arq"/></svg></span>
+        <span class="txt">
+          <span class="nombre">ShardShop</span>
+          <span class="tag">Sharding horizontal y vertical en acción</span>
+        </span>
+      </div>
+      <nav class="menu" id="menu">
+        <button class="activa" data-tab="arquitectura"><svg class="ico"><use href="#ico-arq"/></svg> Arquitectura</button>
+        <button data-tab="distribucion"><svg class="ico"><use href="#ico-dist"/></svg> Distribución</button>
+        <button data-tab="enrutamiento"><svg class="ico"><use href="#ico-ruta"/></svg> Enrutamiento</button>
+        <button data-tab="vertical"><svg class="ico"><use href="#ico-vert"/></svg> Vertical</button>
+        <button data-tab="tienda"><svg class="ico"><use href="#ico-tienda"/></svg> Tienda</button>
+        <button data-tab="estadisticas"><svg class="ico"><use href="#ico-est"/></svg> Estadísticas</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app">
+    <!-- Arquitectura -->
+    <section class="panel activo" id="panel-arquitectura">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-arq"/></svg></span>
+        <div>
+          <h2>Arquitectura</h2>
+          <p>Dónde vive cada dato: el cluster Citus (sharding horizontal) y la base db_usuarios (sharding vertical).</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Mapa del sistema</h3>
+          <p class="sub">La app mantiene dos conexiones: una al coordinator de Citus y otra a db_usuarios.</p>
+          <div class="arqui">
+            <div class="arqui-caja app"><div class="t">app FastAPI · :8000</div><div class="s">panel + API</div></div>
+            <div class="arqui-flecha">▼</div>
+            <div class="arqui-row">
+              <div class="arqui-caja coord"><div class="t">coordinator · :5432</div><div class="s">Citus · metadatos de shards</div></div>
+              <div class="arqui-caja dbus"><div class="t">db_usuarios · :5433</div><div class="s">PostgreSQL 16 · usuarios</div></div>
+            </div>
+            <div class="arqui-flecha">▼</div>
+            <div class="arqui-row">
+              <div class="arqui-caja worker"><div class="t">worker1</div><div class="s">shards de pedidos</div></div>
+              <div class="arqui-caja worker"><div class="t">worker2</div><div class="s">shards de pedidos</div></div>
+              <div class="arqui-caja ref"><div class="t">productos</div><div class="s">tabla replicada</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Estado del sistema</h3>
+          <p class="sub">Estado en vivo de las dos bases y de los workers del cluster.</p>
+          <div class="acciones"><button class="boton" id="btn-arq">Refrescar</button></div>
+          <div class="estado" id="arq-estado"></div>
+          <div class="metricas" id="arq-metricas"></div>
+          <details class="vermas" open>
+            <summary>Workers y nodos registrados</summary>
+            <div class="tabla-wrap" id="arq-workers" style="margin-top:8px"></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Distribución -->
+    <section class="panel" id="panel-distribucion">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-dist"/></svg></span>
+        <div>
+          <h2>Distribución de shards</h2>
+          <p>La tabla <code>pedidos</code> se divide en 32 shards repartidos entre los workers según <code>cliente_id</code>.</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Filas por worker</h3>
+          <p class="sub">Un reparto equilibrado (~50/50) indica que la clave distribuye bien la carga.</p>
+          <div class="estado" id="dist-estado"></div>
+          <div class="grafico-caja"><canvas id="grafico-dist"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Shards en cada worker</h3>
+          <p class="sub">Cada etiqueta es un shard (id · filas); el color identifica su worker.</p>
+          <div class="workers-grid" id="dist-workers"></div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="card">
+          <h3>Detalle de los shards</h3>
+          <p class="sub">Relación entre cada shard y su worker.</p>
+          <div class="tabla-wrap" id="dist-tabla"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Enrutamiento -->
+    <section class="panel" id="panel-enrutamiento">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-ruta"/></svg></span>
+        <div>
+          <h2>Enrutamiento</h2>
+          <p>Un <code>cliente_id</code> siempre cae en el mismo shard: filtrar por él reduce la consulta a un solo shard.</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>¿Dónde vive el cliente?</h3>
+          <p class="sub">Mismo hash que aplica Citus al guardar los pedidos.</p>
+          <div class="bloque" style="max-width:220px"><label class="campo" for="ruta-cliente">cliente_id</label><input type="number" id="ruta-cliente" min="1" value="42"></div>
+          <div class="acciones"><button class="boton" id="btn-ruta">Ubicar cliente</button></div>
+          <div class="estado" id="ruta-estado"></div>
+          <div id="ruta-ubicacion" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <h3>Enrutada vs global</h3>
+          <p class="sub">Menos tareas = menos shards consultados.</p>
+          <div id="ruta-explain"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vertical -->
+    <section class="panel" id="panel-vertical">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-vert"/></svg></span>
+        <div>
+          <h2>Sharding vertical</h2>
+          <p>Los usuarios viven en una base aparte y sus columnas se separan: los datos básicos en <code>usuarios</code> y el perfil en <code>usuarios_perfil</code>.</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card cyan">
+          <h3>Las dos tablas del usuario</h3>
+          <p class="sub">Los datos básicos se consultan todo el tiempo; el perfil solo cuando se necesita.</p>
+          <div class="esquema">
+            <div class="tabla-esquema basica">
+              <div class="tabla-titulo">usuarios <span class="badge ok">datos básicos</span></div>
+              <ol>
+                <li>id <span class="tipo">· entero</span></li>
+                <li>nombre <span class="tipo">· texto</span></li>
+                <li>email <span class="tipo">· texto</span></li>
+                <li>creado_en <span class="tipo">· fecha</span></li>
+              </ol>
+            </div>
+            <div class="tabla-esquema perfil">
+              <div class="tabla-titulo">usuarios_perfil <span class="badge ambar">perfil</span></div>
+              <ol>
+                <li>usuario_id <span class="tipo">· enlace</span></li>
+                <li>biografia <span class="tipo">· texto largo</span></li>
+                <li>foto <span class="tipo">· imagen</span></li>
+                <li>preferencias <span class="tipo">· JSON</span></li>
+              </ol>
+            </div>
+            <div class="esquema-nota">Ambas en <code>db_usuarios</code> · se unen por <code>usuario_id</code> solo al pedir el perfil completo.</div>
+          </div>
+        </div>
+        <div class="card cyan">
+          <h3>Consulta básica vs con perfil</h3>
+          <p class="sub">Ejecuta N consultas que leen solo los datos básicos y N que además traen el perfil.</p>
+          <div class="bloque" style="max-width:220px"><label class="campo" for="vert-n">Número de consultas</label><input type="number" id="vert-n" min="1" max="10000" value="200"></div>
+          <div class="acciones"><button class="boton cian" id="btn-vert">Ejecutar medición</button></div>
+          <div class="estado" id="vert-estado"></div>
+          <div class="grafico-caja"><canvas id="grafico-vert"></canvas></div>
+          <div class="metricas" id="vert-datos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tienda -->
+    <section class="panel" id="panel-tienda">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-tienda"/></svg></span>
+        <div>
+          <h2>Tienda</h2>
+          <p>Crea y consulta datos reales: cada operación toca el sharding horizontal (pedidos) o el vertical (usuarios).</p>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <div class="card cyan">
+          <div class="card-cab"><h3>Crear usuario</h3><span class="badge cian">vertical</span></div>
+          <p class="sub">Escribe en <code>usuarios</code> y <code>usuarios_perfil</code> en una sola transacción. 409 si el email existe.</p>
+          <div class="bloque"><label class="campo" for="u-nombre">Nombre</label><input id="u-nombre" placeholder="Ana"></div>
+          <div class="bloque"><label class="campo" for="u-email">Email</label><input id="u-email" type="email" placeholder="ana@mail.com"></div>
+          <details class="vermas">
+            <summary>Datos opcionales del perfil</summary>
+            <div class="bloque" style="margin-top:10px"><label class="campo" for="u-bio">Biografía</label><input id="u-bio" placeholder="hola"></div>
+            <div class="bloque"><label class="campo" for="u-pref">Preferencias (JSON)</label><textarea id="u-pref" placeholder='{"tema":"oscuro"}'></textarea></div>
+          </details>
+          <div class="acciones"><button class="boton cian" id="btn-usuario">Crear usuario</button></div>
+          <div class="estado" id="user-estado"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-cab"><h3>Crear pedido</h3><span class="badge azul">horizontal</span></div>
+          <p class="sub">Valida el cliente en db_usuarios y guarda <code>pedidos</code> + detalle en un único shard.</p>
+          <div class="bloque" style="max-width:200px"><label class="campo" for="p-cliente">cliente_id</label><input type="number" id="p-cliente" min="1" value="1"></div>
+          <label class="campo">Items (producto_id · cantidad)</label>
+          <div id="items"></div>
+          <div class="acciones">
+            <button class="boton lineal" id="btn-add-item" type="button">+ Añadir item</button>
+            <button class="boton" id="btn-pedido">Crear pedido</button>
+          </div>
+          <div class="estado" id="pedido-estado"></div>
+          <div id="pedido-resultado"></div>
+          <details class="vermas"><summary>Ver catálogo de productos</summary><p class="sub" style="margin-top:8px" id="catalogo">(cargando…)</p></details>
+        </div>
+
+        <div class="card">
+          <div class="card-cab"><h3>Consultar pedidos</h3><span class="badge azul">horizontal</span></div>
+          <p class="sub">Búsqueda por <code>cliente_id</code>: se lee de un solo shard.</p>
+          <div class="bloque" style="max-width:200px"><label class="campo" for="c-cliente">cliente_id</label><input type="number" id="c-cliente" min="1" value="1"></div>
+          <div class="acciones"><button class="boton" id="btn-consulta">Consultar pedidos</button></div>
+          <div class="estado" id="consulta-estado"></div>
+          <div id="consulta-resultado"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estadísticas -->
+    <section class="panel" id="panel-estadisticas">
+      <div class="panel-cab">
+        <span class="panel-ico"><svg class="ico"><use href="#ico-est"/></svg></span>
+        <div>
+          <h2>Estadísticas</h2>
+          <p>Consultas que recorren todos los shards a la vez y administración del cluster.</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-cab"><h3>Resumen global</h3><span class="badge azul">todos los shards</span></div>
+          <p class="sub">Agregados calculados sumando el trabajo de los 32 shards.</p>
+          <div class="acciones"><button class="boton lineal" id="btn-est">Refrescar</button></div>
+          <div class="estado" id="est-estado"></div>
+          <div class="metricas" id="est-metricas"></div>
+          <div class="tabla-wrap" id="est-top" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div class="card-cab"><h3>Rebalanceo de shards</h3><span class="badge azul">administración</span></div>
+          <p class="sub">Reparte los shards entre los workers (útil tras añadir uno nuevo).</p>
+          <div class="acciones"><button class="boton" id="btn-reb">Rebalancear</button></div>
+          <div class="estado" id="reb-estado"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const COLOR_WORKER = { worker1: "#1d4ed8", worker2: "#0e9f6e", worker3: "#0284c7" };
+    const colorWorker = (nodo) => COLOR_WORKER[nodo] || "#5b6b86";
+
+    async function api(ruta, opciones) {
+      const res = await fetch(ruta, opciones);
+      const texto = await res.text();
+      let datos = null;
+      try { datos = texto ? JSON.parse(texto) : null; } catch { datos = texto; }
+      if (!res.ok) {
+        let detalle = `HTTP ${res.status}`;
+        if (datos && datos.detail) detalle = typeof datos.detail === "string" ? datos.detail : JSON.stringify(datos.detail);
+        throw new Error(detalle);
+      }
+      return datos;
+    }
+
+    function estado(el, tipo, msg) {
+      if (!el) return;
+      el.className = "estado" + (tipo ? " " + tipo : "");
+      el.innerHTML = msg || "";
+    }
+
+    function num(n) {
+      if (n === null || n === undefined) return "—";
+      return Number(n).toLocaleString("es-CO", { maximumFractionDigits: 2 });
+    }
+
+    function badge(texto, tipo) { return `<span class="badge ${tipo}">${texto}</span>`; }
+    function metrica(etiqueta, valorHtml) { return `<div class="metrica"><div class="etiqueta">${etiqueta}</div><div class="valor">${valorHtml}</div></div>`; }
+    function escapar(t) { return String(t).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
+
+    function tabla(cont, cabeceras, filas, vacio, numCols = []) {
+      if (!filas.length) { cont.innerHTML = `<p class="sub">${vacio}</p>`; return; }
+      const th = cabeceras.map((c, i) => `<th class="${numCols.includes(i) ? "num" : ""}">${c}</th>`).join("");
+      const tr = filas.map((f) => "<tr>" + f.map((c, i) => `<td class="${numCols.includes(i) ? "num" : ""}">${c}</td>`).join("") + "</tr>").join("");
+      cont.innerHTML = `<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+    }
+
+    function dibujarBarras(grafico, canvasId, etiquetas, datos, titulo, colores, sufijo) {
+      const ctx = document.getElementById(canvasId);
+      const col = colores || "#2563eb";
+      if (grafico) {
+        grafico.data.labels = etiquetas;
+        grafico.data.datasets[0].data = datos;
+        grafico.data.datasets[0].label = titulo;
+        grafico.data.datasets[0].backgroundColor = col;
+        grafico.update();
+        return grafico;
+      }
+      return new Chart(ctx, {
+        type: "bar",
+        data: { labels: etiquetas, datasets: [{ label: titulo, data: datos, backgroundColor: col, borderRadius: 6 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => " " + num(c.parsed.y) + (sufijo || "") } },
+          },
+          scales: { y: { beginAtZero: true, ticks: { callback: (v) => num(v) } } },
+        },
+      });
+    }
+
+    /* --- Arquitectura ----------------------------------------------------- */
+    async function cargarArquitectura() {
+      estado($("#arq-estado"), "cargando", "Consultando estado…");
+      try {
+        const s = await api("/health");
+        estado($("#arq-estado"), s.status === "ok" ? "ok" : "error",
+          `Estado general: ${badge(s.status, s.status === "ok" ? "ok" : "error")}`);
+        $("#arq-metricas").innerHTML = [
+          metrica("Citus (horizontal)", s.citus.ok ? badge("conectado", "ok") : badge("error", "error")),
+          metrica("Usuarios (vertical)", s.usuarios.ok ? badge("conectado", "ok") : badge("error", "error")),
+          metrica("Workers activos", s.workers.length),
+        ].join("");
+        const nodos = await api("/admin/nodos");
+        tabla($("#arq-workers"),
+          ["nodo", "puerto", "activo"],
+          nodos.map((n) => [n.nodename, n.nodeport, n.isactive ? "sí" : "no"]),
+          "Sin nodos registrados.", [1]);
+      } catch (e) {
+        estado($("#arq-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    /* --- Distribución ----------------------------------------------------- */
+    let graficoDist = null;
+    async function cargarDistribucion() {
+      estado($("#dist-estado"), "cargando", "Consultando distribución…");
+      try {
+        const d = await api("/shards/distribucion");
+        estado($("#dist-estado"), "ok",
+          `${num(d.total_filas)} filas de <code>${d.tabla}</code> en ${d.shards.length} shards · ${d.por_nodo.length} workers.`);
+        graficoDist = dibujarBarras(graficoDist, "grafico-dist",
+          d.por_nodo.map((n) => n.nodename),
+          d.por_nodo.map((n) => n.filas),
+          "Filas de pedidos",
+          d.por_nodo.map((n) => colorWorker(n.nodename)), " filas");
+
+        const porWorker = {};
+        d.shards.forEach((s) => { (porWorker[s.nodename] ||= []).push(s); });
+        $("#dist-workers").innerHTML = d.por_nodo.map((n) => {
+          const shards = porWorker[n.nodename] || [];
+          const chips = shards.map((s) =>
+            `<span class="chip" style="background:${colorWorker(n.nodename)}" title="${num(s.filas)} filas">${s.shardid}<span style="opacity:.75"> · ${num(s.filas)}</span></span>`
+          ).join("");
+          return `<div class="worker-card">
+            <div class="worker-cab"><strong>${n.nodename}</strong>${badge(num(n.porcentaje) + "%", "ok")}</div>
+            <div class="worker-filas">${num(n.filas)} filas · ${shards.length} shards</div>
+            <div class="chips">${chips}</div>
+          </div>`;
+        }).join("");
+
+        tabla($("#dist-tabla"),
+          ["shardid", "nodename", "filas"],
+          d.shards.map((s) => [s.shardid, s.nodename, num(s.filas)]),
+          "Sin shards.", [0, 2]);
+      } catch (e) {
+        estado($("#dist-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    /* --- Enrutamiento ----------------------------------------------------- */
+    async function cargarEnrutamiento() {
+      const clienteId = parseInt($("#ruta-cliente").value, 10);
+      if (!clienteId || clienteId < 1) {
+        estado($("#ruta-estado"), "error", "Ingresa un cliente_id válido (>= 1).");
+        return;
+      }
+      estado($("#ruta-estado"), "cargando", "Consultando ubicación y planes…");
+      try {
+        const [ubicacion, explain] = await Promise.all([
+          api("/shards/ubicacion/" + clienteId),
+          api("/shards/explain?cliente_id=" + clienteId),
+        ]);
+        estado($("#ruta-estado"), "ok", "Consulta completada.");
+
+        $("#ruta-ubicacion").innerHTML = `
+          <div class="flujo">
+            <div class="flujo-nodo entrada"><div class="titulo">cliente_id</div><div class="dato">${ubicacion.cliente_id}</div></div>
+            <div class="flujo-flecha">→<small>hash</small></div>
+            <div class="flujo-nodo shard"><div class="titulo">shard</div><div class="dato">${ubicacion.shardid}</div></div>
+            <div class="flujo-flecha">→<small>vive en</small></div>
+            <div class="flujo-nodo worker"><div class="titulo">worker</div><div class="dato">${ubicacion.nodename}</div></div>
+          </div>`;
+
+        $("#ruta-explain").innerHTML = explain.consultas.map((c) => {
+          const uno = c.task_count === 1;
+          const caja = c.task_count === null ? "" :
+            `<div class="tc-caja ${uno ? "uno" : "muchos"}"><span class="n">${c.task_count}</span><span class="l">Task Count</span></div>`;
+          return `<div class="bloque-explain">
+            <div class="titulo">
+              <div><strong>${c.titulo}</strong><div class="sql"><code>${escapar(c.sql)}</code></div></div>
+              ${caja}
+            </div>
+            <details class="vermas"><summary>Ver plan completo</summary><pre class="plan">${escapar(c.plan)}</pre></details>
+          </div>`;
+        }).join("");
+      } catch (e) {
+        estado($("#ruta-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    /* --- Vertical --------------------------------------------------------- */
+    let graficoVert = null;
+    async function cargarVertical() {
+      const n = parseInt($("#vert-n").value, 10) || 200;
+      estado($("#vert-estado"), "cargando", `Midiendo ${n} consultas básicas y ${n} con perfil…`);
+      try {
+        const d = await api("/demo/vertical?n=" + n);
+        estado($("#vert-estado"), "ok",
+          `Usuario #${d.usuario_id} · básica ${num(d.lecturas_calientes_ms)} ms vs con perfil ${num(d.lecturas_pesadas_ms)} ms.`);
+        graficoVert = dibujarBarras(graficoVert, "grafico-vert",
+          ["Consulta básica", "Con perfil (JOIN)"],
+          [d.lecturas_calientes_ms, d.lecturas_pesadas_ms],
+          "Milisegundos totales",
+          ["#0e9f6e", "#d97706"], " ms");
+        $("#vert-datos").innerHTML = [
+          metrica("Tiempo básico", num(d.lecturas_calientes_ms) + " ms"),
+          metrica("Tiempo con perfil", num(d.lecturas_pesadas_ms) + " ms"),
+          metrica("Factor de mejora", num(d.factor_mejora) + "×"),
+          metrica("Datos básicos", num(d.bytes_calientes) + " bytes"),
+          metrica("Con perfil", num(d.bytes_pesados) + " bytes"),
+        ].join("");
+      } catch (e) {
+        estado($("#vert-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    /* --- Tienda ----------------------------------------------------------- */
+    async function cargarCatalogo() {
+      try {
+        const productos = await api("/productos");
+        $("#catalogo").innerHTML = productos.length
+          ? productos.map((p) => `#${p.id} ${p.nombre} ($${num(p.precio)})`).join(" · ")
+          : "(no hay productos)";
+      } catch (e) {
+        $("#catalogo").textContent = "(error al cargar productos: " + e.message + ")";
+      }
+    }
+
+    function agregarItem() {
+      const div = document.createElement("div");
+      div.className = "fila-item";
+      div.innerHTML =
+        `<input type="number" class="item-prod" min="1" value="1" aria-label="producto_id">
+         <input type="number" class="item-cant" min="1" value="1" aria-label="cantidad">
+         <button type="button" class="quitar">Quitar</button>`;
+      div.querySelector(".quitar").addEventListener("click", () => div.remove());
+      $("#items").appendChild(div);
+    }
+
+    async function crearUsuario() {
+      const nombre = $("#u-nombre").value.trim();
+      const email = $("#u-email").value.trim();
+      if (!nombre || !email) { estado($("#user-estado"), "error", "Nombre y email son obligatorios."); return; }
+      const cuerpo = { nombre, email };
+      const bio = $("#u-bio").value.trim();
+      if (bio) cuerpo.biografia = bio;
+      const prefTexto = $("#u-pref").value.trim();
+      if (prefTexto) {
+        try { cuerpo.preferencias = JSON.parse(prefTexto); }
+        catch { estado($("#user-estado"), "error", "Preferencias no es JSON válido."); return; }
+      }
+      try {
+        const u = await api("/usuarios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+        estado($("#user-estado"), "ok", `Usuario creado: ${badge("#" + u.id + " " + u.nombre, "cian")} · ${u.email}`);
+      } catch (e) {
+        estado($("#user-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    async function crearPedido() {
+      const clienteId = parseInt($("#p-cliente").value, 10);
+      if (!clienteId || clienteId < 1) { estado($("#pedido-estado"), "error", "cliente_id inválido."); return; }
+      const items = [];
+      document.querySelectorAll("#items .fila-item").forEach((fila) => {
+        const productoId = parseInt(fila.querySelector(".item-prod").value, 10);
+        const cantidad = parseInt(fila.querySelector(".item-cant").value, 10);
+        if (productoId >= 1 && cantidad >= 1) items.push({ producto_id: productoId, cantidad });
+      });
+      if (!items.length) { estado($("#pedido-estado"), "error", "Añade al menos un item válido."); return; }
+      try {
+        const p = await api("/pedidos", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cliente_id: clienteId, items }),
+        });
+        let ubic = "";
+        try {
+          const u = await api("/shards/ubicacion/" + p.cliente_id);
+          ubic = `<p class="sub" style="margin-top:10px">Guardado en el shard <strong>${u.shardid}</strong> del worker <strong>${u.nodename}</strong> (según <code>cliente_id = ${p.cliente_id}</code>).</p>`;
+        } catch { /* informativo */ }
+        estado($("#pedido-estado"), "ok", `Pedido ${badge("#" + p.id, "azul")} · total $${num(p.total)}`);
+        $("#pedido-resultado").innerHTML = ubic + renderPedidos([p]);
+      } catch (e) {
+        estado($("#pedido-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    async function consultarPedidos() {
+      const clienteId = parseInt($("#c-cliente").value, 10);
+      if (!clienteId || clienteId < 1) { estado($("#consulta-estado"), "error", "cliente_id inválido."); return; }
+      try {
+        const pedidos = await api("/clientes/" + clienteId + "/pedidos");
+        estado($("#consulta-estado"), "ok", `${pedidos.length} pedido(s) del cliente ${clienteId} (leídos de un único shard).`);
+        $("#consulta-resultado").innerHTML = renderPedidos(pedidos);
+      } catch (e) {
+        estado($("#consulta-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    function renderPedidos(pedidos) {
+      if (!pedidos.length) return `<p class="sub">Sin pedidos.</p>`;
+      return pedidos.map((p) => {
+        const items = p.items.map((i) => `<li>#${i.producto_id} ${i.nombre} · ${i.cantidad} × $${num(i.precio_unitario)}</li>`).join("");
+        return `<div class="pedido"><div class="cab"><strong>Pedido #${p.id}</strong>${badge("$" + num(p.total), "neutro")}</div><ul>${items}</ul></div>`;
+      }).join("");
+    }
+
+    /* --- Estadísticas ----------------------------------------------------- */
+    async function cargarEstadisticas() {
+      estado($("#est-estado"), "cargando", "Consultando agregados…");
+      try {
+        const d = await api("/estadisticas");
+        estado($("#est-estado"), "ok", "Agregación sobre todos los shards.");
+        $("#est-metricas").innerHTML = [
+          metrica("Pedidos", num(d.total_pedidos)),
+          metrica("Ingresos", "$" + num(d.ingresos)),
+          metrica("Ticket promedio", "$" + num(d.ticket_promedio)),
+        ].join("");
+        tabla($("#est-top"),
+          ["producto_id", "nombre", "unidades", "ingresos"],
+          d.top_productos.map((t) => [t.producto_id, t.nombre, num(t.unidades), "$" + num(t.ingresos)]),
+          "Sin datos.", [0, 2, 3]);
+      } catch (e) {
+        estado($("#est-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    async function rebalancear() {
+      try {
+        const r = await api("/admin/rebalance", { method: "POST" });
+        estado($("#reb-estado"), "ok", `Rebalanceo de <code>${r.tabla}</code> (${r.shard_transfer_mode}): ${r.resultado}.`);
+        cargarDistribucion();
+      } catch (e) {
+        estado($("#reb-estado"), "error", "Error: " + e.message);
+      }
+    }
+
+    /* --- Navegación ------------------------------------------------------- */
+    function alPulsar(selector, fn) {
+      const el = $(selector);
+      if (!el) return;
+      el.addEventListener("click", async () => {
+        const b = el;
+        b.disabled = true;
+        try { await fn(); } finally { b.disabled = false; }
+      });
+    }
+
+    alPulsar("#btn-arq", cargarArquitectura);
+    alPulsar("#btn-ruta", cargarEnrutamiento);
+    alPulsar("#btn-vert", cargarVertical);
+    alPulsar("#btn-est", cargarEstadisticas);
+    alPulsar("#btn-reb", rebalancear);
+    alPulsar("#btn-usuario", crearUsuario);
+    alPulsar("#btn-pedido", crearPedido);
+    alPulsar("#btn-consulta", consultarPedidos);
+    $("#btn-add-item").addEventListener("click", agregarItem);
+
+    const cargadas = new Set();
+    const cargadores = {
+      arquitectura: cargarArquitectura,
+      distribucion: cargarDistribucion,
+      enrutamiento: cargarEnrutamiento,
+      vertical: cargarVertical,
+      tienda: cargarCatalogo,
+      estadisticas: cargarEstadisticas,
+    };
+
+    function activar(nombre) {
+      document.querySelectorAll("#menu button").forEach((b) => b.classList.toggle("activa", b.dataset.tab === nombre));
+      document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("activo", p.id === "panel-" + nombre));
+      if (!cargadas.has(nombre)) { cargadas.add(nombre); cargadores[nombre](); }
+    }
+
+    document.querySelectorAll("#menu button").forEach((b) =>
+      b.addEventListener("click", () => activar(b.dataset.tab)));
+
+    agregarItem();
+    activar("arquitectura");
+  </script>
+</body>
+</html>

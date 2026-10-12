@@ -1,0 +1,13 @@
+# Credenciales locales (nunca versionar).
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Sistema
+.DS_Store
